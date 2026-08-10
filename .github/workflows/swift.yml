@@ -9,7 +9,7 @@ jobs:
 
     runs-on: windows-latest
 
-    timeout-minutes: 360
+    timeout-minutes: 75
 
 
     steps:
@@ -25,7 +25,6 @@ jobs:
 
         oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
 
-        tags: tag:github-rdp
 
 
 
@@ -88,6 +87,6 @@ jobs:
 
         while ($true) {
 
-          Start-Sleep -Seconds 3000
+          Start-Sleep -Seconds 60
 
         }
