@@ -1,0 +1,93 @@
+name: Windows Remote Desktop Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  rdp:
+
+    runs-on: windows-latest
+
+    timeout-minutes: 360
+
+
+    steps:
+
+
+    - name: 安装 Tailscale
+
+      uses: tailscale/github-action@v4
+
+      with:
+
+        oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+
+        oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+        tags: tag:github-rdp
+
+
+
+    - name: 开启 Windows RDP
+
+      shell: powershell
+
+      run: |
+
+
+        # 开启远程桌面
+
+        Set-ItemProperty `
+        -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" `
+        -Name "fDenyTSConnections" `
+        -Value 0
+
+
+        # 防火墙允许RDP
+
+        Enable-NetFirewallRule `
+        -DisplayGroup "Remote Desktop"
+
+
+
+        # 设置密码
+
+        net user runneradmin `
+        "${{ secrets.RDP_PASSWORD }}"
+
+
+        # 允许密码登录
+
+        Set-LocalUser `
+        -Name runneradmin `
+        -PasswordNeverExpires $true
+
+
+
+    - name: 获取Tailscale地址
+
+      shell: powershell
+
+      run: |
+
+
+        tailscale ip
+
+
+
+    - name: 保持运行
+
+      shell: powershell
+
+      run: |
+
+
+        Write-Host "RDP服务器运行中"
+
+
+        while ($true) {
+
+          Start-Sleep -Seconds 3000
+
+        }
