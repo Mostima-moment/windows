@@ -1,4 +1,4 @@
-name: Windows Remote Desktop Test
+name: Windows RDP
 
 on:
   workflow_dispatch:
@@ -9,33 +9,30 @@ jobs:
 
     runs-on: windows-latest
 
-    timeout-minutes: 75
+    timeout-minutes: 60
 
 
     steps:
 
 
-    - name: 安装 Tailscale
+    - name: 安装 Tailscale 并连接
 
       uses: tailscale/github-action@v4
 
       with:
 
-        oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-
-        oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+        authkey: ${{ secrets.TS_AUTHKEY }}
 
 
 
-
-    - name: 开启 Windows RDP
+    - name: 开启远程桌面
 
       shell: powershell
 
       run: |
 
 
-        # 开启远程桌面
+        # 开启RDP
 
         Set-ItemProperty `
         -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" `
@@ -43,49 +40,77 @@ jobs:
         -Value 0
 
 
-        # 防火墙允许RDP
+
+        # 开启防火墙
 
         Enable-NetFirewallRule `
         -DisplayGroup "Remote Desktop"
 
 
 
-        # 设置密码
-
-        net user runneradmin `
-        "${{ secrets.RDP_PASSWORD }}"
-
-
-        # 允许密码登录
-
-        Set-LocalUser `
-        -Name runneradmin `
-        -PasswordNeverExpires $true
-
-
-
-    - name: 获取Tailscale地址
+    - name: 创建RDP用户
 
       shell: powershell
 
       run: |
 
 
-        tailscale ip
+        $Password = ConvertTo-SecureString `
+        "${{ secrets.RDP_PASSWORD }}" `
+        -AsPlainText `
+        -Force
+
+
+        New-LocalUser `
+        -Name "rdpuser" `
+        -Password $Password `
+        -Description "Temporary RDP User"
 
 
 
-    - name: 保持运行
+        Add-LocalGroupMember `
+        -Group "Administrators" `
+        -Member "rdpuser"
+
+
+
+    - name: 显示Tailscale IP
 
       shell: powershell
 
       run: |
 
 
-        Write-Host "RDP服务器运行中"
+        Write-Host "================================"
+
+        Write-Host "RDP地址:"
 
 
-        while ($true) {
+        tailscale ip -4
+
+
+        Write-Host "用户名: rdpuser"
+
+        Write-Host "密码: 使用GitHub Secret RDP_PASSWORD"
+
+
+        Write-Host "================================"
+
+
+
+    - name: 保持运行1小时
+
+      shell: powershell
+
+      run: |
+
+
+        Write-Host "Windows RDP运行中"
+
+
+        for ($i = 0; $i -lt 60; $i++) {
+
+          Write-Host "剩余 $((60-$i)) 分钟"
 
           Start-Sleep -Seconds 60
 
